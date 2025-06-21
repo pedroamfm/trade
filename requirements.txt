@@ -1,4 +1,6 @@
 Flask==2.3.2
 yfinance==0.2.38
-pandas==2.2.2
+pandas==2.2.3  # Última versión estable al 21/06/2025
 gunicorn==21.2.0
+numpy==2.0.0  # Añadir numpy explícitamente, ya que pandas lo requiere
+
