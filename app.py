@@ -20,7 +20,7 @@ def get_stock_data():
             return jsonify({"error": "'tickers' must be a list of strings"}), 400
 
         # Descargar datos
-        data = yf.download(tickers, period="10d", interval="1d", group_by="ticker", auto_adjust=True, prepost=False)
+        data = yf.download(tickers, period="10d", interval="1d", group_by="ticker", auto_adjust=True, prepost=True)
 
         rows = []
         for ticker in tickers:
