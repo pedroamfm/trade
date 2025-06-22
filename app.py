@@ -26,7 +26,7 @@ def get_stock_data():
         for ticker in tickers:
             if ticker in data.columns.levels[0]:
                 ticker_data = data[ticker]
-                if not ticker_data.empty:
+                if ticker_data.empty:
                     latest_day = ticker_data.iloc[0]
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     volume_10d = ticker_data["Volume"].mean()
