@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 import yfinance as yf
 from datetime import datetime
@@ -9,12 +8,14 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Configurar ubicación de caché para yfinance
+yf.TzCache.set_tzcache_location('/tmp/yfinance_cache')
+
 app = Flask(__name__)
 
 @app.route("/get_stock_data", methods=["POST"])
 def get_stock_data():
     try:
-        # Leer el JSON enviado en el body
         content = request.get_json()
 
         if not content or "tickers" not in content:
@@ -25,8 +26,12 @@ def get_stock_data():
         if not isinstance(tickers, list) or not all(isinstance(t, str) for t in tickers):
             return jsonify({"error": "'tickers' must be a list of strings"}), 400
 
-        # Descargar datos históricos (10 días, incluyendo datos previos)
-        data = yf.download(tickers, period="10d", interval="1d", group_by="ticker", auto_adjust=True, prepost=True)
+        # Intentar descargar datos con manejo de errores
+        try:
+            data = yf.download(tickers, period="10d", interval="1d", group_by="ticker", auto_adjust=True, prepost=True)
+        except Exception as e:
+            logger.error(f"Failed to download data: {str(e)}")
+            return jsonify({"status": "error", "message": "Failed to fetch data from yfinance"}), 500
 
         if data.empty:
             logger.warning(f"No data retrieved for tickers: {tickers}")
@@ -37,7 +42,7 @@ def get_stock_data():
             if ticker in data.columns.levels[0]:
                 ticker_data = data[ticker].dropna()
                 if not ticker_data.empty:
-                    latest_day = ticker_data.iloc[-1]  # Último día con datos
+                    latest_day = ticker_data.iloc[-1]
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     volume_10d = ticker_data["Volume"].mean() if "Volume" in ticker_data else 0
                     previous_close = ticker_data["Close"].shift(1).iloc[-1] if "Close" in ticker_data and not pd.isna(ticker_data["Close"].shift(1).iloc[-1]) else None
