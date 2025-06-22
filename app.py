@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 import yfinance as yf
 from datetime import datetime
@@ -7,9 +8,6 @@ import logging
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Configurar ubicación de caché para yfinance
-yf.TzCache.set_tzcache_location('/tmp/yfinance_cache')
 
 app = Flask(__name__)
 
