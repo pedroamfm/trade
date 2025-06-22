@@ -1,33 +1,30 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request, jsonify
 import yfinance as yf
-import pandas as pd
 from datetime import datetime
+import pandas as pd
 
 app = Flask(__name__)
 
-# Lista predeterminada de tickers
-default_tickers = [
-    "DUK", "TJX", "AVGO", "EME", "DASH", "AEM", "LOAR", "AAON", "META", "ANET",
-    "BAC", "UNH", "GEV", "CEG", "VST", "CCJ", "NOV", "KKR", "AES",
-    "MCO", "COR", "SNOW", "RGTI", "QBTS", "AAPL", "CELH", "DECK", "ARM", "GM",
-    "CRWD", "INTU", "ANGO", "INTC", "FUTU", "SHOP", "AMC", "FMC", "TEAM", "OSCR",
-    "ADBE", "PYPL", "NBIX", "ASTS", "ATS", "CRWD", "HIMS", "EW", "STT", "DEO", "MDB", "KO", "WU"
-]
-
-@app.route('/get_stock_data', methods=['POST'])
+@app.route("/get_stock_data", methods=["POST"])
 def get_stock_data():
     try:
-        # Obtener tickers desde la solicitud JSON, o usar la lista predeterminada
-        data = request.get_json()
-        tickers = data.get('tickers', default_tickers)
+        # Leer el JSON enviado en el body
+        content = request.get_json()
 
-        # Descargar datos para 10 días
+        if not content or "tickers" not in content:
+            return jsonify({"error": "Missing 'tickers' in request body"}), 400
+
+        tickers = content["tickers"]
+
+        if not isinstance(tickers, list) or not all(isinstance(t, str) for t in tickers):
+            return jsonify({"error": "'tickers' must be a list of strings"}), 400
+
+        # Descargar datos
         data = yf.download(tickers, period="10d", interval="1d", group_by="ticker", auto_adjust=True, prepost=False)
 
-        # Procesar los datos
         rows = []
-        for ticker in data.columns.levels[0]:
-            if ticker in tickers:
+        for ticker in tickers:
+            if ticker in data.columns.levels[0]:
                 ticker_data = data[ticker]
                 if not ticker_data.empty:
                     latest_day = ticker_data.iloc[0]
@@ -43,21 +40,15 @@ def get_stock_data():
                         "Close": latest_day["Close"],
                         "PreviousClose": previous_close,
                         "volume": latest_day["Volume"],
-                        "averageVolume": volume_10d,
-                        "averageVolume10days": volume_10d
+                        "averageVolume": volume_10d
                     }
                     rows.append(row)
 
-        # Devolver respuesta JSON
-        return jsonify({
-            "status": "success",
-            "data": rows
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify({"status": "success", "data": rows})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
